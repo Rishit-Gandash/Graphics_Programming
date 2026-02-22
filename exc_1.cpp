@@ -1,4 +1,4 @@
-// g++ exc_1.cpp glad.c -o exc_1 $(pkg-config --cflags --libs glfw3) -lGL && ./exc_1
+// g++ test.cpp glad.c -o test $(pkg-config --cflags --libs glfw3) -lGL && ./test
 // allons-y or some shit 
 
 
@@ -29,6 +29,12 @@ const char *fragmentShaderSource = "#version 330 core\n"
     "FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
 	"}\0";
 
+const char *fragmentShaderSource_1 = "#version 330 core\n"
+	"out vec4 FragColor;\n"
+	"void main()\n"
+	"{\n"
+    "FragColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);\n"
+	"}\0";
 
 int main()
 {
@@ -81,7 +87,7 @@ int main()
 		std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
 	}
 
-	// init fragment shader
+	
 	unsigned int fragmentShader;
 	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
@@ -110,28 +116,59 @@ int main()
 		std::cout << "Program Compilation failed\n";
 	}
 
-	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
+	// init fragment shader
+	unsigned int fragmentShader_1;
+	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragmentShader_1, 1, &fragmentShaderSource_1, NULL);
+	glCompileShader(fragmentShader_1);
 
-float vertices[] = {
-     0.5f,  0.5f, 0.0f,  // top right
-     0.5f, -0.5f, 0.0f,  // bottom right
-    -0.5f, -0.5f, 0.0f,  // bottom left
-    -0.5f,  0.5f, 0.0f   // top left 
-};
-unsigned int indices[] = {  // note that we start from 0!
-    0, 1, 3,   // first triangle
-    1, 2, 3    // second triangle
-};  
+	glGetShaderiv(fragmentShader_1, GL_COMPILE_STATUS, &success);
+
+	if(!success) 
+	{
+		glGetShaderInfoLog(fragmentShader_1, 512, NULL, infoLog);
+		std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+	}
+
+	// init shader program
+
+	unsigned int shaderProgram_1;
+	shaderProgram_1 = glCreateProgram();
+
+	glAttachShader(shaderProgram_1, vertexShader);
+	glAttachShader(shaderProgram_1, fragmentShader_1);
+	glLinkProgram(shaderProgram_1);
+
+	glGetProgramiv(shaderProgram_1, GL_LINK_STATUS, &success);
+	if(!success) {
+	    glGetProgramInfoLog(shaderProgram_1, 512, NULL, infoLog);
+		std::cout << "Program Compilation failed\n";
+	}
+
+	glDeleteShader(vertexShader);
+	glDeleteShader(fragmentShader_1);
+
+	float vertices[] = {
+    -1.00f, -0.5f, 0.0f,
+     0.0f, -0.5f, 0.0f,
+     -0.5f,  0.5f, 0.0f,
+	};
+
+	float vertices_1[] = {
+	 1.00f, -0.5f, 0.0f,
+     -0.0f, -0.5f, 0.0f,
+     0.5f,  0.5f, 0.0f,
+	};
+
+
 
 	unsigned int VBO;
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);  
 
 	unsigned int VAO;
 	glGenVertexArrays(1, &VAO);
@@ -139,15 +176,23 @@ unsigned int indices[] = {  // note that we start from 0!
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
+	
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(0);  
 
-	unsigned int EBO;
-	glGenBuffers(1, &EBO);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW); 
+	unsigned int VBO_1;
+	glGenBuffers(1, &VBO_1);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_1);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_1), vertices_1, GL_STATIC_DRAW);
+
+	unsigned int VAO_1;
+	glGenVertexArrays(1, &VAO_1);
+
+	glBindVertexArray(VAO_1);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_1);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_1), vertices_1, GL_STATIC_DRAW);
+
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
@@ -165,9 +210,12 @@ unsigned int indices[] = {  // note that we start from 0!
         glClear(GL_COLOR_BUFFER_BIT);
 
 		glUseProgram(shaderProgram);
-		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
+		glBindVertexArray(VAO);	
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+
+		glUseProgram(shaderProgram_1);
+		glBindVertexArray(VAO_1);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
@@ -196,5 +244,3 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
 }
-
-
